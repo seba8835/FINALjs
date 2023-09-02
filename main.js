@@ -1,30 +1,39 @@
-//Variable que mantiene el estado visible del carrito
+// Variable que mantiene el estado visible del carrito
 let carritoVisible = false;
 
-//Esperamos que todos los elementos de la pàgina cargen para ejecutar el script
-if (document.readyState == "loading") {
+// Variable para almacenar el carrito en el LocalStorage
+const carritoEnLocalStorage = "carrito";
+
+// Esperamos a que todos los elementos de la página carguen para ejecutar el script
+if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", ready);
 } else {
   ready();
 }
-/* card de producto */
+
+
+//-------------- ELEMENTOS QUE CREAN LOS PRODUCTOS DISPONIBLES PARA COMPRAR---------------
+
+// Carga de los productos desde el archivo JSON (uso de api local)
 fetch("productos.json")
   .then((response) => response.json())
   .then((data) => {
     const productos = data.productos;
 
-    /* traigo el elemento desde el DOM donde cargo el producto */
+
+// Traigo el elemento del DOM donde se cargan los productos
     const productosContainer = document.getElementById("productos-container");
 
-    /* Recorrido del array y creación de los elementos para mostrarlos */
+    // Recorrido del array y creación de los elementos para mostrarlos
     productos.forEach((prod, index) => {
       let productoElement = document.createElement("div");
       productoElement.innerHTML = `
         <h2>${prod.producto}</h2>
         <p>${prod.precio}</p>
-        <button data-index="${index}">Agregar al carrito</button>
+        <button data-index="${index}">Agregar</button>
         <img src="${prod.imagen}" alt="">
       `;
+
       const buttonClick = productoElement.querySelector("button");
       buttonClick.addEventListener("click", (event) => {
         // Lógica para agregar el producto al carrito utilizando el índice
@@ -38,53 +47,68 @@ fetch("productos.json")
     console.error("Error:", error);
   });
 
+
+//--------------- CREACION DEL CARRITO --------------------
+
 function ready() {
-  /*  Agregremos funcionalidad a los botones eliminar del carrito */
-  let botonesEliminarItem = document.getElementsByClassName("btn-eliminar");
-  for (let i = 0; i < botonesEliminarItem.length; i++) {
-    let button = botonesEliminarItem[i];
-    button.addEventListener("click", eliminarItemCarrito);
-  }
+  const botonAgregar = document.getElementById("button");
+  botonAgregar.addEventListener("click", () =>{
+    const producto = document.getElementById("producto").value;
+    const precio = document.getElementById("precio").value;
+    const imagen = document.getElementById("imagen").value;
 
-  //Agrego funcionalidad al boton sumar cantidad
-  let botonesSumarCantidad = document.getElementsByClassName("sumar-cantidad");
-  for (let i = 0; i < botonesSumarCantidad.length; i++) {
-    let button = botonesSumarCantidad[i];
-    button.addEventListener("click", sumarCantidad);
-  }
+    agregarAlCarrito(producto, precio, imagen);
+    guardarCarritoToLocalStorage();
+  });
 
-  //Agrego funcionalidad al buton restar cantidad
-  let botonesRestarCantidad =
-    document.getElementsByClassName("restar-cantidad");
-  for (let i = 0; i < botonesRestarCantidad.length; i++) {
-    let button = botonesRestarCantidad[i];
-    button.addEventListener("click", restarCantidad);
-  }
+  recuperarCarritoFromLocalStorage();
 
-  //Agregamos funcionalidad al boton Agregar al carrito
-  let botonesAgregarAlCarrito = document.getElementsByClassName("boton-item");
-  for (let i = 0; i < botonesAgregarAlCarrito.length; i++) {
-    let button = botonesAgregarAlCarrito[i];
-    button.addEventListener("click", agregarAlCarritoClicked);
-  }
-
-  //Agregamos funcionalidad al botón comprar
-  document
-    .getElementsByClassName("btn-pagar")[0]
-    .addEventListener("click", pagarClicked);
-}
-//Eliminamos todos los elementos del carrito y lo ocultamos
+  
+// Eliminamos todos los elementos del carrito y lo ocultamos
 function pagarClicked() {
   Swal.fire("Gracias por la compra");
-  //Elimino todos los elmentos del carrito
+  // Elimino todos los elementos del carrito
   let carritoItems = document.getElementsByClassName("carrito-items")[0];
   while (carritoItems.hasChildNodes()) {
     carritoItems.removeChild(carritoItems.firstChild);
   }
   actualizarTotalCarrito();
+  guardarCarritoToLocalStorage()
   ocultarCarrito();
 }
-//Funciòn que controla el boton clickeado de agregar al carrito
+
+// Función para recuperar el carrito desde el LocalStorage
+function recuperarCarritoFromLocalStorage() {
+  const carritoItemsContainer = document.getElementsByClassName(
+    "carrito-items"
+  )[0];
+  const carritoEnLocalStorage = localStorage.getItem("carrito");
+
+  if (carritoEnLocalStorage) {
+    const carritoItems = JSON.parse(carritoEnLocalStorage);
+
+    carritoItems.forEach((item) => {
+      const { producto, precio, imagen, cantidad } = item;
+
+      const carritoItem = document.createElement("div");
+      carritoItem.classList.add("carrito-item");
+
+      const carritoItemContent = `
+        <img src="${imagen}" alt="${producto}" class="carrito-item-imagen">
+        <div class="carrito-item-detalle">
+          <h4 class="carrito-item-nombre">${producto}</h4>
+          <p class="carrito-item-precio">$${precio}</p>
+          <input type="number" min="1" value="${cantidad}" class="carrito-item-cantidad">
+          <button class="btn btn-danger carrito-item-eliminar">Eliminar</button>
+        </div>
+      `;
+
+      carritoItem.innerHTML = carritoItemContent;
+      carritoItemsContainer.appendChild(carritoItem);
+    });
+  }
+}
+// Función que controla el botón clickeado de agregar al carrito
 function agregarAlCarritoClicked(event) {
   const button = event.target;
   const productoElement = button.parentElement;
@@ -92,168 +116,170 @@ function agregarAlCarritoClicked(event) {
   const precio = productoElement.querySelector("p").textContent;
   const imagen = productoElement.querySelector("img").getAttribute("src");
 
-  agregarItemAlCarrito(producto, precio, imagen);
-
+  agregarAlCarrito(producto, precio, imagen);
+  
   hacerVisibleCarrito();
 }
 
-function agregarAlCarrito(producto, precio) {
-  const Carrito = producto.find((producto) => producto.id === id);
+ 
 
-  // Si el producto existe, agregarlo al carrito
-  if (productoEncontrado) {
-    const carritoItem = document.createElement("li");
-    carritoItem.innerText = productoEncontrado.nombre;
-    carritoContainer.appendChild(carritoItem);
-  }
-}
-
-//Funcion que hace visible el carrito
-function hacerVisibleCarrito() {
-  carritoVisible = true;
-  const carrito = document.getElementsByClassName("carrito")[0];
-  carrito.style.marginRight = "0";
-  carrito.style.opacity = "1";
-
-  let items = document.getElementsByClassName("productos-container")[0];
-  items.style.width = "60%";
-}
-
-//Funciòn que agrega un item al carrito
-function agregarItemAlCarrito(titulo, precio, imagenSrc) {
-  let item = document.createElement("div");
-  item.classList.add = "item";
-  let itemsCarrito = document.getElementsByClassName("carrito-items")[0];
-
-  //controlamos que el item que intenta ingresar no se encuentre en el carrito
-  let nombresItemsCarrito = itemsCarrito.getElementsByClassName(
-    "carrito-item-titulo"
-  );
-  for (let i = 0; i < nombresItemsCarrito.length; i++) {
-    if (nombresItemsCarrito[i].innerText == titulo) {
-      Swal.fire("El item ya se encuentra en el carrito");
-      return;
-    }
-  }
-
-  const itemCarritoContenido = `
-        <div class="carrito-item">
-            <img src="${imagenSrc}" width="80px" alt="">
-            <div class="carrito-item-detalles">
-                <span class="carrito-item-titulo">${titulo}</span>
-                <div class="selector-cantidad">
-                    <i class="fa-solid fa-minus restar-cantidad"></i>
-                    <input type="text" value="1" class="carrito-item-cantidad" disabled>
-                    <i class="fa-solid fa-plus sumar-cantidad"></i>
-                </div>
-                <span class="carrito-item-precio">${precio}</span>
-            </div>
-            <button class="btn-eliminar">
-                <i class="fa-solid fa-trash"></i>
-            </button>
-        </div>
-    `;
-
-  item.innerHTML = itemCarritoContenido;
-  itemsCarrito.append(item);
-
-  //Agregamos la funcionalidad eliminar al nuevo item
-  item
+  // Agregamos funcionalidad al botón eliminar del nuevo item
+  carritoItem
     .getElementsByClassName("btn-eliminar")[0]
     .addEventListener("click", eliminarItemCarrito);
 
-  //Agregmos al funcionalidad restar cantidad del nuevo item
-  const botonRestarCantidad = item.getElementsByClassName("restar-cantidad")[0];
-  botonRestarCantidad.addEventListener("click", restarCantidad);
+  // Agregamos funcionalidad al input de cantidad del nuevo item
+  carritoItem
+    .getElementsByClassName("carrito-cantidad")[0]
+    .addEventListener("change", cantidadCambiada);
 
-  //Agregamos la funcionalidad sumar cantidad del nuevo item
-  const botonSumarCantidad = item.getElementsByClassName("sumar-cantidad")[0];
-  botonSumarCantidad.addEventListener("click", sumarCantidad);
-
-  //Actualizamos total
   actualizarTotalCarrito();
 }
-//Aumento en uno la cantidad del elemento seleccionado
-function sumarCantidad(event) {
-  let buttonClicked = event.target;
-  let selector = buttonClicked.parentElement;
-  console.log(
-    selector.getElementsByClassName("carrito-item-cantidad")[0].value
-  );
-  let cantidadActual = selector.getElementsByClassName(
-    "carrito-item-cantidad"
-  )[0].value;
-  cantidadActual++;
-  selector.getElementsByClassName("carrito-item-cantidad")[0].value =
-    cantidadActual;
-  actualizarTotalCarrito();
-}
-//Resto en uno la cantidad del elemento seleccionado
-function restarCantidad(event) {
-  let buttonClicked = event.target;
-  let selector = buttonClicked.parentElement;
-  console.log(
-    selector.getElementsByClassName("carrito-item-cantidad")[0].value
-  );
-  let cantidadActual = selector.getElementsByClassName(
-    "carrito-item-cantidad"
-  )[0].value;
-  cantidadActual--;
-  if (cantidadActual >= 1) {
-    selector.getElementsByClassName("carrito-item-cantidad")[0].value =
-      cantidadActual;
-    actualizarTotalCarrito();
-  }
+// Agregremos funcionalidad a los botones eliminar del carrito
+let botonesEliminarItem = document.getElementsByClassName("btn-eliminar");
+for (let i = 0; i < botonesEliminarItem.length; i++) {
+  let button = botonesEliminarItem[i];
+  button.addEventListener("click", eliminarItemCarrito);
 }
 
-//Elimino el item seleccionado del carrito
+// Agrego funcionalidad al botón sumar cantidad
+let botonesSumarCantidad = document.getElementsByClassName(
+  "sumar-cantidad"
+);
+for (let i = 0; i < botonesSumarCantidad.length; i++) {
+  let button = botonesSumarCantidad[i];
+  button.addEventListener("click", sumarCantidad);
+}
+
+// Agrego funcionalidad al botón restar cantidad
+let botonesRestarCantidad = document.getElementsByClassName(
+  "restar-cantidad"
+);
+for (let i = 0; i < botonesRestarCantidad.length; i++) {
+  let button = botonesRestarCantidad[i];
+  button.addEventListener("click", restarCantidad);
+}
+
+// Agregamos funcionalidad al botón Agregar al carrito
+let botonesAgregarAlCarrito = document.getElementsByClassName(
+  "boton-item"
+);
+for (let i = 0; i < botonesAgregarAlCarrito.length; i++) {
+  let button = botonesAgregarAlCarrito[i];
+  button.addEventListener("click", agregarAlCarritoClicked);
+}
+
+// Agregamos funcionalidad al botón comprar
+document
+  .getElementsByClassName("btn-pagar")[0]
+  .addEventListener("click", pagarClicked);
+
+// Función para eliminar un item del carrito
 function eliminarItemCarrito(event) {
-  let buttonClicked = event.target;
+  const buttonClicked = event.target;
   buttonClicked.parentElement.parentElement.remove();
-  //Actualizamos el total del carrito
   actualizarTotalCarrito();
-
-  //la siguiente funciòn controla si hay elementos en el carrito
-  //Si no hay elimino el carrito
-  ocultarCarrito();
+  guardarCarritoToLocalStorage();
 }
-//Funciòn que controla si hay elementos en el carrito. Si no hay oculto el carrito
-function ocultarCarrito() {
-  let carritoItems = document.getElementsByClassName("carrito-items")[0];
-  if (carritoItems.childElementCount == 0) {
-    let carrito = document.getElementsByClassName("carrito")[0];
-    carrito.style.marginRight = "-100%";
-    carrito.style.opacity = "0";
-    carritoVisible = false;
 
-    let items = document.getElementsByClassName("contenedor-items")[0];
-    items.style.width = "100%";
-  }
-}
-//Actualizamos el total de Carrito
-
+// Función para actualizar el total del carrito
 function actualizarTotalCarrito() {
-  //seleccionamos el contenedor carrito
-  let carritoContenedor = document.getElementsByClassName("carrito")[0];
-  let carritoItems = carritoContenedor.getElementsByClassName("carrito-item");
+  const carritoItemsContainer = document.getElementsByClassName(
+    "carrito-items"
+  )[0];
+  const carritoItems = carritoItemsContainer.getElementsByClassName(
+    "carrito-item"
+  );
   let total = 0;
-
-  //recorremos cada elemento del carrito para actualizar el total
   for (let i = 0; i < carritoItems.length; i++) {
-    let item = carritoItems[i];
-    let precioElemento = item.getElementsByClassName("carrito-item-precio")[0];
-
-    //quitamos el simobolo peso y el punto de milesimos
-    let precio = parseFloat(
-      precioElemento.innerText.replace("$", "").replace(".", "")
-    );
-    let cantidadItem = item.getElementsByClassName("carrito-item-cantidad")[0];
-    console.log(precio);
-    let cantidad = cantidadItem.value;
+    const carritoItem = carritoItems[i];
+    const precioElement = carritoItem.getElementsByClassName("precio")[0];
+    const cantidadElement = carritoItem.getElementsByClassName(
+      "carrito-cantidad"
+    )[0];
+    const precio = parseFloat(precioElement.innerText.replace("$", ""));
+    const cantidad = cantidadElement.value;
     total = total + precio * cantidad;
   }
-  total = Math.round(total * 100) / 100;
-
-  document.getElementsByClassName("carrito-precio-total")[0].innerText =
-    "$" + total.toLocaleString("es") + ",00";
+  document.getElementsByClassName("carrito-total-precio")[0].innerText =
+    "$" + total.toFixed(2);
 }
+
+// Función para sumar la cantidad de un item en el carrito
+function sumarCantidad(event) {
+  const buttonClicked = event.target;
+  const input = buttonClicked.parentElement.querySelector(".carrito-cantidad");
+  let cantidad = parseInt(input.value);
+  cantidad++;
+  input.value = cantidad;
+  actualizarTotalCarrito();
+  guardarCarritoToLocalStorage();
+}
+
+// Función para restar la cantidad de un item en el carrito
+function restarCantidad(event) {
+  const buttonClicked = event.target;
+  const input = buttonClicked.parentElement.querySelector(".carrito-cantidad");
+  let cantidad = parseInt(input.value);
+  if (cantidad > 1) {
+    cantidad--;
+    input.value = cantidad;
+    actualizarTotalCarrito();
+    guardarCarritoToLocalStorage();
+  }
+}
+
+// Función para cambiar la cantidad de un item en el carrito
+function cantidadCambiada(event) {
+  const input = event.target;
+  if (isNaN(input.value) || input.value <= 0) {
+    input.value = 1;
+  }
+  actualizarTotalCarrito();
+  guardarCarritoToLocalStorage();
+}
+
+// Función para hacer visible el carrito
+function hacerVisibleCarrito() {
+  const carrito = document.getElementsByClassName("carrito")[0];
+  carrito.style.visibility = "visible";
+  carritoVisible = true;
+}
+
+// Función para ocultar el carrito
+function ocultarCarrito() {
+  const carrito = document.getElementsByClassName("carrito")[0];
+  carrito.style.visibility = "hidden";
+  carritoVisible = false;
+}
+
+// Función para guardar el carrito en el LocalStorage
+function guardarCarritoToLocalStorage() {
+  const carritoItemsContainer = document.getElementsByClassName(
+    "carrito-items"
+  )[0];
+  const carritoItems = carritoItemsContainer.getElementsByClassName(
+    "carrito-item"
+  );
+  const carrito = [];
+  for (let i = 0; i < carritoItems.length; i++) {
+    const carritoItem = carritoItems[i];
+    const producto = carritoItem.getElementsByTagName("h3")[0].innerText;
+    const precio = carritoItem.getElementsByTagName("p")[0].innerText;
+    const imagen = carritoItem.getElementsByTagName("img")[0].getAttribute("src");
+    const cantidad = carritoItem.getElementsByClassName(
+      "carrito-cantidad"
+    )[0].value;
+    carrito.push({ producto, precio, imagen, cantidad });
+  }
+  localStorage.setItem(carritoEnLocalStorage, JSON.stringify(carrito));
+}
+
+
+
+
+
+
+
+
+
